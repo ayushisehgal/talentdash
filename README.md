@@ -26,7 +26,7 @@ Every answer comes from structured, normalised, deduplicated data served via a s
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/YOUR_USERNAME/talentdash.git
+git clone https://github.com/ayushisehgal/talentdash.git
 cd talentdash
 npm install
 ```
