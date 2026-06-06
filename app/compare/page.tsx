@@ -1,10 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LevelBadge from '@/components/ui/LevelBadge';
 import { formatSalary } from '@/lib/utils';
 
-export default function ComparePage() {
+function CompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [salaries, setSalaries] = useState<any[]>([]);
@@ -21,25 +21,20 @@ export default function ComparePage() {
 
   useEffect(() => {
     if (s1 && s2 && s1 !== s2) {
-      router.replace(`/compare?s1=${s1}&s2=${s2}`, { scroll: false });
+      router.replace('/compare?s1=' + s1 + '&s2=' + s2, { scroll: false });
       setLoading(true);
-      fetch(`/api/compare?s1=${s1}&s2=${s2}`)
+      fetch('/api/compare?s1=' + s1 + '&s2=' + s2)
         .then(r => r.json())
         .then(d => { setResult(d); setLoading(false); });
     }
   }, [s1, s2]);
 
-  const fmt = (n: number, cur: string) => formatSalary(n, cur, 'INR');
+  const fmt = (n: number) => formatSalary(n, 'INR', 'INR');
 
   const delta = (n: number) => {
-    if (!n || n === 0) return <span className="text-muted-text">—</span>;
-    const color = n > 0 ? 'text-success-green' : 'text-error-red';
-    return (
-      <span className={`font-medium ${color}`}>
-        {n > 0 ? '+' : '-'}
-        {fmt(Math.abs(n), 'INR')}
-      </span>
-    );
+    if (!n || n === 0) return <span style={{ color: '#717171' }}>—</span>;
+    const color = n > 0 ? '#008A05' : '#D93025';
+    return <span style={{ fontWeight: 500, color }}>{n > 0 ? '+' : '-'}{fmt(Math.abs(n))}</span>;
   };
 
   const fields = [
@@ -51,96 +46,71 @@ export default function ComparePage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-deep-text mb-6">Compare Offers</h1>
-
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {[
-          { val: s1, set: setS1, label: 'Offer A' },
-          { val: s2, set: setS2, label: 'Offer B' },
-        ].map(({ val, set, label }) => (
+      <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#222222', marginBottom: '24px' }}>Compare Offers</h1>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+        {[{ val: s1, set: setS1, label: 'Offer A' }, { val: s2, set: setS2, label: 'Offer B' }].map(({ val, set, label }) => (
           <div key={label}>
-            <label className="text-sm font-medium text-muted-text mb-1 block">{label}</label>
-            <select
-              value={val}
-              onChange={e => set(e.target.value)}
-              className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-data-blue"
-            >
+            <label style={{ fontSize: '14px', fontWeight: 500, color: '#717171', display: 'block', marginBottom: '4px' }}>{label}</label>
+            <select value={val} onChange={e => set(e.target.value)}
+              style={{ width: '100%', border: '1px solid #EBEBEB', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', outline: 'none', backgroundColor: '#fff' }}>
               <option value="">Select a record...</option>
               {salaries.map((s: any) => (
-                <option key={s.id} value={s.id}>
-                  {s.company?.name} · {s.role} · {s.level} · {s.location}
-                </option>
+                <option key={s.id} value={s.id}>{s.company?.name} · {s.role} · {s.level} · {s.location}</option>
               ))}
             </select>
           </div>
         ))}
       </div>
 
-      {loading && (
-        <div className="text-muted-text text-center py-8">Comparing...</div>
-      )}
+      {loading && <div style={{ color: '#717171', textAlign: 'center', padding: '32px' }}>Comparing...</div>}
 
       {result && !loading && !result.error && (
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
+        <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #EBEBEB', overflow: 'hidden' }}>
           {result.delta.tc_delta !== 0 && (
-            <div className="bg-data-blue text-white text-sm px-4 py-2 font-medium flex items-center gap-2">
-              {result.delta.tc_delta > 0
-                ? result.record1.company?.name
-                : result.record2.company?.name}{' '}
-              offers higher total compensation
-              <span className="bg-white text-data-blue px-2 py-0.5 rounded text-xs font-bold">
-                Higher TC
-              </span>
+            <div style={{ backgroundColor: '#0369A1', color: '#fff', padding: '8px 16px', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {result.delta.tc_delta > 0 ? result.record1.company?.name : result.record2.company?.name} offers higher total compensation
+              <span style={{ backgroundColor: '#fff', color: '#0369A1', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700 }}>Higher TC</span>
             </div>
           )}
-          <table className="w-full text-sm">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
-              <tr className="bg-app-bg border-b border-border">
-                <th className="px-4 py-3 text-left text-xs text-muted-text">Field</th>
-                <th className="px-4 py-3 text-left text-xs text-muted-text">
-                  {result.record1.company?.name}
-                </th>
-                <th className="px-4 py-3 text-left text-xs text-muted-text">
-                  {result.record2.company?.name}
-                </th>
-                <th className="px-4 py-3 text-left text-xs text-muted-text">Difference</th>
+              <tr style={{ backgroundColor: '#F7F7F7', borderBottom: '1px solid #EBEBEB' }}>
+                {['Field', result.record1.company?.name, result.record2.company?.name, 'Difference'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 500, color: '#717171' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-text">Role</td>
-                <td className="px-4 py-3">{result.record1.role}</td>
-                <td className="px-4 py-3">{result.record2.role}</td>
-                <td className="px-4 py-3">—</td>
+              <tr style={{ borderBottom: '1px solid #EBEBEB' }}>
+                <td style={{ padding: '12px 16px', color: '#717171' }}>Role</td>
+                <td style={{ padding: '12px 16px' }}>{result.record1.role}</td>
+                <td style={{ padding: '12px 16px' }}>{result.record2.role}</td>
+                <td style={{ padding: '12px 16px' }}>—</td>
               </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-text">Level</td>
-                <td className="px-4 py-3"><LevelBadge level={result.record1.level} /></td>
-                <td className="px-4 py-3"><LevelBadge level={result.record2.level} /></td>
-                <td className="px-4 py-3">—</td>
+              <tr style={{ borderBottom: '1px solid #EBEBEB' }}>
+                <td style={{ padding: '12px 16px', color: '#717171' }}>Level</td>
+                <td style={{ padding: '12px 16px' }}><LevelBadge level={result.record1.level} /></td>
+                <td style={{ padding: '12px 16px' }}><LevelBadge level={result.record2.level} /></td>
+                <td style={{ padding: '12px 16px' }}>—</td>
               </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-text">Location</td>
-                <td className="px-4 py-3">{result.record1.location}</td>
-                <td className="px-4 py-3">{result.record2.location}</td>
-                <td className="px-4 py-3">—</td>
+              <tr style={{ borderBottom: '1px solid #EBEBEB' }}>
+                <td style={{ padding: '12px 16px', color: '#717171' }}>Location</td>
+                <td style={{ padding: '12px 16px' }}>{result.record1.location}</td>
+                <td style={{ padding: '12px 16px' }}>{result.record2.location}</td>
+                <td style={{ padding: '12px 16px' }}>—</td>
               </tr>
-              <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-text">Experience</td>
-                <td className="px-4 py-3">{result.record1.experience_years}y</td>
-                <td className="px-4 py-3">{result.record2.experience_years}y</td>
-                <td className="px-4 py-3">{delta(result.delta.experience_delta)}</td>
+              <tr style={{ borderBottom: '1px solid #EBEBEB' }}>
+                <td style={{ padding: '12px 16px', color: '#717171' }}>Experience</td>
+                <td style={{ padding: '12px 16px' }}>{result.record1.experience_years}y</td>
+                <td style={{ padding: '12px 16px' }}>{result.record2.experience_years}y</td>
+                <td style={{ padding: '12px 16px' }}>{delta(result.delta.experience_delta)}</td>
               </tr>
               {fields.map(f => (
-                <tr key={f.key} className="border-b border-border hover:bg-hover-surface">
-                  <td className="px-4 py-3 text-muted-text">{f.label}</td>
-                  <td className={`px-4 py-3 ${f.dominant ? 'font-bold text-data-blue' : ''}`}>
-                    {fmt(Number(result.record1[f.key]), result.record1.currency)}
-                  </td>
-                  <td className={`px-4 py-3 ${f.dominant ? 'font-bold text-data-blue' : ''}`}>
-                    {fmt(Number(result.record2[f.key]), result.record2.currency)}
-                  </td>
-                  <td className="px-4 py-3">{delta(result.delta[f.deltaKey])}</td>
+                <tr key={f.key} style={{ borderBottom: '1px solid #EBEBEB' }}>
+                  <td style={{ padding: '12px 16px', color: '#717171' }}>{f.label}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: f.dominant ? 700 : 400, color: f.dominant ? '#0369A1' : '#484848' }}>{fmt(Number(result.record1[f.key]))}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: f.dominant ? 700 : 400, color: f.dominant ? '#0369A1' : '#484848' }}>{fmt(Number(result.record2[f.key]))}</td>
+                  <td style={{ padding: '12px 16px' }}>{delta(result.delta[f.deltaKey])}</td>
                 </tr>
               ))}
             </tbody>
@@ -148,5 +118,13 @@ export default function ComparePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={<div style={{ color: '#717171', padding: '32px' }}>Loading...</div>}>
+      <CompareContent />
+    </Suspense>
   );
 }
