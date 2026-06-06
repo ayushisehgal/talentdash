@@ -3,7 +3,7 @@
 India's career intelligence platform — structured, comparable, decision-ready salary data for tech professionals.
 
 **Live URL:** https://talentdash-y8kp.onrender.com  
-**GitHub:** https://github.com/YOUR_USERNAME/talentdash
+**GitHub:** https://github.com/ayushisehgal/talentdash
 
 ---
 
