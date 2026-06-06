@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
@@ -15,8 +14,8 @@ export async function GET(req: NextRequest) {
     prisma.salary.findUnique({ where: { id: s2 }, include: { company: true } }),
   ]);
 
-  if (!r1) return NextResponse.json({ error: true, message: `Record ${s1} not found` }, { status: 404 });
-  if (!r2) return NextResponse.json({ error: true, message: `Record ${s2} not found` }, { status: 404 });
+  if (!r1) return NextResponse.json({ error: true, message: 'Record ' + s1 + ' not found' }, { status: 404 });
+  if (!r2) return NextResponse.json({ error: true, message: 'Record ' + s2 + ' not found' }, { status: 404 });
 
   const delta = {
     base_delta: Number(r1.base_salary) - Number(r2.base_salary),
@@ -26,7 +25,13 @@ export async function GET(req: NextRequest) {
     experience_delta: r1.experience_years - r2.experience_years,
   };
 
-  const serialize = (r: any) => ({ ...r, base_salary: r.base_salary.toString(), bonus: r.bonus.toString(), stock: r.stock.toString(), total_compensation: r.total_compensation.toString() });
+  const serialize = (r: any) => ({
+    ...r,
+    base_salary: r.base_salary.toString(),
+    bonus: r.bonus.toString(),
+    stock: r.stock.toString(),
+    total_compensation: r.total_compensation.toString(),
+  });
 
   return NextResponse.json({ record1: serialize(r1), record2: serialize(r2), delta });
 }

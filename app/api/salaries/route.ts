@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-
   const company = searchParams.get('company') || '';
   const role = searchParams.get('role') || '';
   const level = searchParams.get('level') || '';
@@ -16,7 +15,11 @@ export async function GET(req: NextRequest) {
   const where: any = {};
   if (company) where.company = { normalized_name: { contains: company.toLowerCase() } };
   if (role) where.role = { contains: role, mode: 'insensitive' };
-  if (level) where.level = level;
+  if (level) {
+    const levels = level.split(',').filter(Boolean);
+    if (levels.length === 1) where.level = levels[0];
+    else if (levels.length > 1) where.level = { in: levels };
+  }
   if (location) where.location = { contains: location, mode: 'insensitive' };
 
   const orderBy: any =
@@ -30,7 +33,13 @@ export async function GET(req: NextRequest) {
   ]);
 
   const response = NextResponse.json({
-    data: records.map(r => ({ ...r, base_salary: r.base_salary.toString(), bonus: r.bonus.toString(), stock: r.stock.toString(), total_compensation: r.total_compensation.toString() })),
+    data: records.map(r => ({
+      ...r,
+      base_salary: r.base_salary.toString(),
+      bonus: r.bonus.toString(),
+      stock: r.stock.toString(),
+      total_compensation: r.total_compensation.toString(),
+    })),
     meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
   });
 

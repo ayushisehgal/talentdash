@@ -1,15 +1,21 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { computeMedian } from '@/lib/utils';
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+
   const company = await prisma.company.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: { salaries: { orderBy: { total_compensation: 'desc' } } },
   });
 
-  if (!company) return NextResponse.json({ error: true, message: 'Company not found' }, { status: 404 });
+  if (!company) {
+    return NextResponse.json({ error: true, message: 'Company not found' }, { status: 404 });
+  }
 
   const tcValues = company.salaries.map(s => Number(s.total_compensation));
   const median_total_compensation = computeMedian(tcValues);
@@ -21,7 +27,13 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
   const response = NextResponse.json({
     ...company,
-    salaries: company.salaries.map(s => ({ ...s, base_salary: s.base_salary.toString(), bonus: s.bonus.toString(), stock: s.stock.toString(), total_compensation: s.total_compensation.toString() })),
+    salaries: company.salaries.map(s => ({
+      ...s,
+      base_salary: s.base_salary.toString(),
+      bonus: s.bonus.toString(),
+      stock: s.stock.toString(),
+      total_compensation: s.total_compensation.toString(),
+    })),
     median_total_compensation,
     level_distribution,
   });

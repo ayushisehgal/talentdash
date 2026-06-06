@@ -1,5 +1,3 @@
-
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { normalizeCompanyName, slugify } from '@/lib/utils';
@@ -10,13 +8,12 @@ const VALID_SOURCES = ['CONTRIBUTOR','SCRAPED','AI_INFERRED'];
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-
-  // Validation
   const errors: { field: string; message: string }[] = [];
+
   if (!body.company) errors.push({ field: 'company', message: 'Company is required' });
   if (!body.role) errors.push({ field: 'role', message: 'Role is required' });
   if (!body.level) errors.push({ field: 'level', message: 'Level is required' });
-  if (!VALID_LEVELS.includes(body.level)) errors.push({ field: 'level', message: `Level must be one of: ${VALID_LEVELS.join(', ')}` });
+  if (body.level && !VALID_LEVELS.includes(body.level)) errors.push({ field: 'level', message: 'Level must be one of: ' + VALID_LEVELS.join(', ') });
   if (!body.location) errors.push({ field: 'location', message: 'Location is required' });
   if (!body.currency || !VALID_CURRENCIES.includes(body.currency)) errors.push({ field: 'currency', message: 'Invalid currency' });
   if (!body.source || !VALID_SOURCES.includes(body.source)) errors.push({ field: 'source', message: 'Invalid source' });
@@ -29,7 +26,6 @@ export async function POST(req: NextRequest) {
   const normalized = normalizeCompanyName(body.company);
   const slug = slugify(normalized);
 
-  // Find or create company
   let company = await prisma.company.findFirst({ where: { normalized_name: normalized } });
   if (!company) {
     company = await prisma.company.create({
@@ -37,22 +33,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Recompute total_compensation
   const base = BigInt(body.base_salary);
   const bonus = BigInt(body.bonus ?? 0);
   const stock = BigInt(body.stock ?? 0);
   const total_compensation = base + bonus + stock;
 
-  // Duplicate check
   const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
   const existing = await prisma.salary.findFirst({
-    where: {
-      company_id: company.id,
-      role: body.role,
-      level: body.level,
-      location: body.location,
-      submitted_at: { gte: fortyEightHoursAgo },
-    },
+    where: { company_id: company.id, role: body.role, level: body.level, location: body.location, submitted_at: { gte: fortyEightHoursAgo } },
   });
 
   if (existing) {
@@ -61,23 +49,15 @@ export async function POST(req: NextRequest) {
   }
 
   const record = await prisma.salary.create({
-    data: {
-      company_id: company.id,
-      role: body.role,
-      level: body.level,
-      location: body.location,
-      currency: body.currency,
-      experience_years: body.experience_years,
-      base_salary: base,
-      bonus,
-      stock,
-      total_compensation,
-      source: body.source,
-      confidence_score: body.confidence_score,
-      is_verified: false,
-    },
+    data: { company_id: company.id, role: body.role, level: body.level, location: body.location, currency: body.currency, experience_years: body.experience_years, base_salary: base, bonus, stock, total_compensation, source: body.source, confidence_score: body.confidence_score, is_verified: false },
     include: { company: true },
   });
 
-  return NextResponse.json(record, { status: 201 });
+  return NextResponse.json({
+    ...record,
+    base_salary: record.base_salary.toString(),
+    bonus: record.bonus.toString(),
+    stock: record.stock.toString(),
+    total_compensation: record.total_compensation.toString(),
+  }, { status: 201 });
 }
